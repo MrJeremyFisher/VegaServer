@@ -57,8 +57,9 @@ export class Main {
         });
 
         setInterval(() => {
-            self.wss.clients.forEach(client => {
-                self.players.forEach(player => {
+            console.log(`${this.players.length} players to ${this.wss.clients.size} clients`)
+            this.wss.clients.forEach(client => {
+                this.players.forEach(player => {
                     // TODO: expire old player records
                     client.send(JSON.stringify(player))
                 });
