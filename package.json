@@ -1,0 +1,32 @@
+{
+  "name": "vega",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsc && node --unhandled-rejections=warn --async-stack-traces -r source-map-support/register dist/main.js",
+    "start:dev": "tsc && node --async-stack-traces -r source-map-support/register dist/main.js",
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/node": "^25.6.2",
+    "@types/source-map-support": "^0.5.10",
+    "@types/ws": "^8.18.1",
+    "source-map-support": "^0.5.21",
+    "typescript": "^6.0.3"
+  },
+  "prettier": {
+    "useTabs": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "singleQuote": true,
+    "semi": false
+  },
+  "dependencies": {
+    "postgres": "^3.4.9",
+    "ws": "^8.20.0"
+  }
+}

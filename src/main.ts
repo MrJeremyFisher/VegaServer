@@ -1,0 +1,85 @@
+import WebSocket, { WebSocketServer } from "ws";
+
+export interface Position {
+    x: string
+    y: string
+    z: string
+}
+
+export interface Player {
+    time: string
+    name: string,
+    uuid: string,
+    status: "ALLY" | "ENEMY" | "WATCH" | "NEUTRAL",
+    position: Position
+}
+
+
+export class Main {
+    wss: WebSocketServer
+    players: Player[] = []
+
+
+    constructor() {
+        var self = this
+        this.wss = new WebSocketServer({ port: 8080 });
+        console.log("Server started on port 8080");
+        this.wss.on("connection", async function connection(ws: WebSocket, request: any, client: any) {
+            const incoming = request.url.split("&");
+            console.log(`Incoming connection attempt: ${incoming}`);
+            const serverID = incoming[1];
+            const username = incoming[2];
+
+
+            const dataResponse = await fetch(`https://sessionserver.mojang.com/session/minecraft/hasJoined?${username}&${serverID}`);
+
+            if (dataResponse.status === 200) {
+                ws.send(200);
+
+                console.log("Connection attempt authenticated");
+                ws.on("error", console.error);
+
+                ws.on("message", function message(data) {
+                    // toString here converts the incoming ByteBuffer to a string, assuming that's what it's supposed to be.
+                    // What other stuff can we send down as ByteBuffers? 
+                    self.parseIncoming(data.toString(), client)
+                });
+            } else {
+                ws.send(401);
+                console.log("Connection attempt failed to authenticate");
+                ws.close();
+            }
+        });
+
+        setInterval(() => {
+            self.wss.clients.forEach(client => {
+                self.players.forEach(player => {
+                    client.send(JSON.stringify(player))
+                });
+            });
+        }, 5000);
+    }
+
+    public async parseIncoming(data: string, client: any) {
+        const query = data.split("&");
+        if (query[0] === "player") {
+            const incomingPlayerUpdate = JSON.parse(query[1]);
+            const idx = this.players.findIndex(player => {
+                return player.name == incomingPlayerUpdate.name
+            });
+
+            if (idx != -1) {
+                if (this.players[idx].time < incomingPlayerUpdate.time) {
+                    this.players[idx] = incomingPlayerUpdate;
+                }
+            } else {
+                this.players.push(incomingPlayerUpdate)
+            }
+        } else {
+            console.log(`Received unknown data ${data} from ${client}`);
+        }
+    }
+
+}
+
+const main = new Main()
