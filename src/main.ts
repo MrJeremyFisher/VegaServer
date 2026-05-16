@@ -39,7 +39,7 @@ export class Main {
             const dataResponse = await fetch(`https://sessionserver.mojang.com/session/minecraft/hasJoined?${username}&${serverID}`);
 
             if (dataResponse.status === 200 && authorizedUsers.includes(username.split("=")[1])) {
-                ws.send(200);
+                ws.send("200");
 
                 console.log("Connection attempt authenticated.");
                 ws.on("error", console.error);
@@ -50,7 +50,7 @@ export class Main {
                     self.parseIncoming(data.toString(), client)
                 });
             } else {
-                ws.send(401);
+                ws.send("401");
                 console.log("Connection attempt failed to authenticate");
                 ws.close();
             }
