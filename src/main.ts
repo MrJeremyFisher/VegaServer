@@ -14,6 +14,7 @@ export interface Player {
     position: Position
 }
 
+const authorizedUsers = ["MrJeremyFisher", "Hg__80", "binchymonkey"]
 
 export class Main {
     wss: WebSocketServer
@@ -25,18 +26,22 @@ export class Main {
         this.wss = new WebSocketServer({ port: 8080 });
         console.log("Server started on port 8080");
         this.wss.on("connection", async function connection(ws: WebSocket, request: any, client: any) {
+            if (!/\/&serverId=.\w*&username=([A-Za-z0-9_]{2,17})/.test(request.url)) {
+                ws.close();
+            }
+
             const incoming = request.url.split("&");
-            console.log(`Incoming connection attempt: ${incoming}`);
             const serverID = incoming[1];
             const username = incoming[2];
+            console.log(`Incoming connection attempt from: ${username.split("=")[1]}`);
 
 
             const dataResponse = await fetch(`https://sessionserver.mojang.com/session/minecraft/hasJoined?${username}&${serverID}`);
 
-            if (dataResponse.status === 200) {
+            if (dataResponse.status === 200 && authorizedUsers.includes(username.split("=")[1])) {
                 ws.send(200);
 
-                console.log("Connection attempt authenticated");
+                console.log("Connection attempt authenticated.");
                 ws.on("error", console.error);
 
                 ws.on("message", function message(data) {
@@ -54,6 +59,7 @@ export class Main {
         setInterval(() => {
             self.wss.clients.forEach(client => {
                 self.players.forEach(player => {
+                    // TODO: expire old player records
                     client.send(JSON.stringify(player))
                 });
             });
