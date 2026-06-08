@@ -1,6 +1,4 @@
 import WebSocket, { WebSocketServer } from "ws";
-import { readFileSync } from 'fs';
-import { createServer } from 'https';
 
 export interface Position {
     x: string
@@ -26,13 +24,8 @@ export class Main {
     constructor() {
         var self = this
 
-        const server = createServer({
-            cert: readFileSync('/etc/letsencrypt/live/wss.ve3jfo.ca/fullchain.pem'),
-            key: readFileSync('/etc/letsencrypt/live/wss.ve3jfo.ca/privkey.pem')
-        });
-
-        this.wss = new WebSocketServer({ server });
-
+        this.wss = new WebSocketServer({ port: 8080 });
+        console.log("Server started on port 8080");
         this.wss.on("connection", async function connection(ws: WebSocket, request: any, client: any) {
             if (!/\/&serverId=.\w*&username=([A-Za-z0-9_]{2,17})/.test(request.url)) {
                 ws.close();
@@ -72,9 +65,6 @@ export class Main {
                 });
             });
         }, 5000);
-
-        server.listen(8080);
-        console.log("Server started on port 8080");
     }
 
     public async parseIncoming(data: string, client: any) {
