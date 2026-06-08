@@ -28,6 +28,8 @@ export class Main {
         console.log("Server started on port 8080");
         this.wss.on("connection", async function connection(ws: WebSocket, request: any, client: any) {
             if (!/\/&serverId=.\w*&username=([A-Za-z0-9_]{2,17})/.test(request.url)) {
+                ws.send("401");
+                console.log("Connection attempt failed to authenticate");
                 ws.close();
             }
 
