@@ -14,7 +14,7 @@ export interface Player {
     position: Position
 }
 
-const authorizedUsers = ["MrJeremyFisher", "Hg__80", "binchymonkey"]
+const authorizedUsers = ["MrJeremyFisher", "Hg__80", "binchymonkey", "IKEA_FRIDGE"]
 
 export class Main {
     wss: WebSocketServer
@@ -57,7 +57,6 @@ export class Main {
         });
 
         setInterval(() => {
-            console.log(`${this.players.length} players to ${this.wss.clients.size} clients`)
             this.wss.clients.forEach(client => {
                 this.players.forEach(player => {
                     // TODO: expire old player records
