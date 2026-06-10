@@ -46,7 +46,7 @@ export class Main {
             console.log(`Incoming connection attempt from: ${username}`);
 
 
-            const dataResponse = await fetch(`https://sessionserver.mojang.com/session/minecraft/hasJoined?username=${username}&serverId${serverID}`);
+            const dataResponse = await fetch(`https://sessionserver.mojang.com/session/minecraft/hasJoined?username=${username}&serverId=${serverID}`);
 
             if (dataResponse.status === 200 && authorizedUsers.includes(username.split("=")[1])) {
                 ws.send("200");
