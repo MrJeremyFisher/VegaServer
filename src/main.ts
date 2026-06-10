@@ -1,3 +1,6 @@
+import { IncomingMessage } from "http";
+import { Socket } from "net";
+import { URL } from "url";
 import WebSocket, { WebSocketServer } from "ws";
 
 export interface Position {
@@ -26,21 +29,24 @@ export class Main {
 
         this.wss = new WebSocketServer({ port: 8080 });
         console.log("Server started on port 8080");
-        this.wss.on("connection", async function connection(ws: WebSocket, request: any, client: any) {
-            if (!/\/serverId=.\w*;username=([A-Za-z0-9_]{2,17})/.test(request.url)) {
+        this.wss.on("connection", async function connection(ws: WebSocket, request: IncomingMessage, client: Socket) {
+            if (!request.url) return;
+
+            if (!/\/\?serverId=.\w*&username=([A-Za-z0-9_]{2,17})/.test(request.url)) {
                 ws.send("401");
-                console.log("Connection attempt failed to authenticate");
+                console.log("Connection attempt failed to authenticate: malformed url");
                 ws.close();
                 return;
             }
 
-            const incoming = request.url.split(";");
-            const serverID = incoming[1];
-            const username = incoming[2];
-            console.log(`Incoming connection attempt from: ${username.split("=")[1]}`);
+            const url = new URL(`http://${process.env.HOST ?? 'localhost'}${request.url}`)
+            const serverID = url.searchParams.get("serverId")!;
+            const username = url.searchParams.get("username")!;
+            
+            console.log(`Incoming connection attempt from: ${username}`);
 
 
-            const dataResponse = await fetch(`https://sessionserver.mojang.com/session/minecraft/hasJoined?${username};${serverID}`);
+            const dataResponse = await fetch(`https://sessionserver.mojang.com/session/minecraft/hasJoined?${username}&${serverID}`);
 
             if (dataResponse.status === 200 && authorizedUsers.includes(username.split("=")[1])) {
                 ws.send("200");
@@ -55,7 +61,7 @@ export class Main {
                 });
             } else {
                 ws.send("401");
-                console.log("Connection attempt failed to authenticate");
+                console.log(`Connection attempt failed to authenticate: bad response (${dataResponse.status}) from Mojang`);
                 ws.close();
                 return;
             }
