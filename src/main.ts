@@ -31,6 +31,7 @@ export class Main {
                 ws.send("401");
                 console.log("Connection attempt failed to authenticate");
                 ws.close();
+                return;
             }
 
             const incoming = request.url.split("&");
@@ -56,6 +57,7 @@ export class Main {
                 ws.send("401");
                 console.log("Connection attempt failed to authenticate");
                 ws.close();
+                return;
             }
         });
 
