@@ -27,20 +27,20 @@ export class Main {
         this.wss = new WebSocketServer({ port: 8080 });
         console.log("Server started on port 8080");
         this.wss.on("connection", async function connection(ws: WebSocket, request: any, client: any) {
-            if (!/\/&serverId=.\w*&username=([A-Za-z0-9_]{2,17})/.test(request.url)) {
+            if (!/\/serverId=.\w*;username=([A-Za-z0-9_]{2,17})/.test(request.url)) {
                 ws.send("401");
                 console.log("Connection attempt failed to authenticate");
                 ws.close();
                 return;
             }
 
-            const incoming = request.url.split("&");
+            const incoming = request.url.split(";");
             const serverID = incoming[1];
             const username = incoming[2];
             console.log(`Incoming connection attempt from: ${username.split("=")[1]}`);
 
 
-            const dataResponse = await fetch(`https://sessionserver.mojang.com/session/minecraft/hasJoined?${username}&${serverID}`);
+            const dataResponse = await fetch(`https://sessionserver.mojang.com/session/minecraft/hasJoined?${username};${serverID}`);
 
             if (dataResponse.status === 200 && authorizedUsers.includes(username.split("=")[1])) {
                 ws.send("200");
@@ -72,7 +72,7 @@ export class Main {
     }
 
     public async parseIncoming(data: string, client: any) {
-        const query = data.split("&");
+        const query = data.split(";");
         if (query[0] === "player") {
             const incomingPlayerUpdate = JSON.parse(query[1]);
             const idx = this.players.findIndex(player => {
