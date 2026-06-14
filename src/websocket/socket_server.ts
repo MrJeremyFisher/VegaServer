@@ -95,8 +95,6 @@ export class SocketServer {
             } else {
                 this.players.push(incomingPlayerUpdate)
             }
-
-            console.log(this.players)
         } else if (query[0] === "user") {
             if (!(await this.isClientAdmin(wsc))) {
                 console.log(`Refused user update from ${(wsc as any).name}, not admin`)
