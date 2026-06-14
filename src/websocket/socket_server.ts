@@ -93,7 +93,7 @@ export class SocketServer {
                 this.main.users[idx] = incomingUserUpdate as VegaUser
             }
 
-
+            this.main.pgHandler.insertOrUpdateUser(incomingUserUpdate as VegaUser);
         }
 
         else {
