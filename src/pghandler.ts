@@ -42,7 +42,7 @@ export class PgHandler {
 
     public async insertOrUpdateUser(player: VegaUser) {
         await this.sql`
-        INSERT INTO vega_users (player_name, uuid, status, permission) VALUES (${player.name}, ${player.uuid}, ${player.status}, ${player.permission})
+        INSERT INTO vega_users (name, uuid, status, permission) VALUES (${player.name}, ${player.uuid}, ${player.status}, ${player.permission})
         ON CONFLICT (uuid) DO UPDATE 
   SET status = ${player.status}, 
       permission = ${player.permission};
