@@ -110,6 +110,7 @@ export class SocketServer {
             }
 
             this.main.pgHandler.insertOrUpdateUser(incomingUserUpdate as VegaUser);
+            this.sendUpdatedUsers();
         }
 
         else {
