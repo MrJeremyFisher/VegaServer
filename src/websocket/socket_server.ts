@@ -38,9 +38,7 @@ export class SocketServer {
             const dataResponse = await fetch(`https://sessionserver.mojang.com/session/minecraft/hasJoined?username=${username}&serverId=${serverID}`);
 
             if (dataResponse.status === 200) {
-                if (main.users.find((element) => {
-                    return element.name === username
-                })) {
+                if (main.users.has(username) && main.users.get(username)!.permission >= 1) {
                     ws.send("200");
                     (ws as any).name = username
                     console.log("Connection attempt authenticated.");
@@ -101,15 +99,11 @@ export class SocketServer {
                 console.log(`Refused user update from ${(wsc as any).name}, not admin`)
                 return;
             }
-            const incomingUserUpdate = JSON.parse(query[1]);
-            const idx = this.main.users.indexOf(incomingUserUpdate as VegaUser);
-            if (idx == -1) {
-                this.main.users.push(incomingUserUpdate as VegaUser);
-            } else {
-                this.main.users[idx] = incomingUserUpdate as VegaUser
+            const incomingUserUpdate = JSON.parse(query[1]) as VegaUser;
+            if (this.main.users.has(incomingUserUpdate.name) && this.main.users.get(incomingUserUpdate.name)?.permission != 2) {
+                this.main.users.set(incomingUserUpdate.name, incomingUserUpdate)
+                this.main.pgHandler.insertOrUpdateUser(incomingUserUpdate as VegaUser);
             }
-
-            this.main.pgHandler.insertOrUpdateUser(incomingUserUpdate as VegaUser);
             this.sendUpdatedUsers();
         }
 
@@ -121,7 +115,8 @@ export class SocketServer {
     public async sendUpdatedUsers() {
         this.main.pgHandler.sql`SELECT * FROM vega_users;`.then((rows) => {
             rows.forEach((row) => {
-                this.main.users.push(row as VegaUser)
+                let r = row as VegaUser
+                this.main.users.set(r.name, r)
             })
         })
         this.wss.clients.forEach(async client => {
@@ -150,7 +145,7 @@ export class SocketServer {
 
     public async isClientAuthed(client: WebSocket) {
         const wscName = (client as any).name
-        const foundUser = this.main.users.find(vegaUser => vegaUser.name === wscName);
+        const foundUser = this.main.users.get(wscName);
 
         if (!foundUser || !(foundUser.permission >= 1)) {
             return false;
@@ -161,7 +156,7 @@ export class SocketServer {
 
     public async isClientAdmin(client: WebSocket) {
         const wscName = (client as any).name
-        const foundUser = this.main.users.find(vegaUser => vegaUser.name === wscName);
+        const foundUser = this.main.users.get(wscName);
 
         if (!foundUser || !(foundUser.permission >= 2)) {
             return false;

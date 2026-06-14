@@ -30,7 +30,7 @@ export interface Config {
 
 
 export class Main {
-    users: VegaUser[] = []
+    users: Map<string, VegaUser> = new Map()
     pgHandler: PgHandler
     config: Config
     // authorizedUsers = ["MrJeremyFisher", "Hg__80", "binchymonkey", "IKEA_FRIDGE"]
@@ -56,7 +56,8 @@ export class Main {
                     );`.then(() => {
             this.pgHandler.sql`SELECT * FROM vega_users;`.then((rows) => {
                 rows.forEach((row) => {
-                    this.users.push(row as VegaUser)
+                    let r = row as VegaUser
+                    this.users.set(r.name, r)
                 })
             })
         })
