@@ -45,6 +45,7 @@ export class SocketServer {
                     (ws as any).name = username
                     console.log("Connection attempt authenticated.");
                     ws.on("error", console.error);
+                    self.sendUpdatedUsers()
 
                     ws.on("message", function message(data: WebSocket.RawData, isBinary: boolean) {
                         // toString here converts the incoming ByteBuffer to a string, assuming that's what it's supposed to be.
@@ -72,7 +73,6 @@ export class SocketServer {
         setInterval(() => {
             if (this.wss.clients.size > 0) {
                 this.sendUpdatedPlayers()
-                this.sendUpdatedUsers()
             }
         }, 2000);
     }
@@ -136,7 +136,7 @@ export class SocketServer {
             if (await this.isClientAuthed(client)) {
 
                 this.players.forEach(player => {
-                    if ((Date.now() - parseInt(player.time))/(3.6 * (10 ** 6)) >= 1) {
+                    if ((Date.now() - parseInt(player.time)) / (3.6 * (10 ** 6)) >= 1) {
                         if (this.players.delete(player.name)) {
                             console.log(`Removed ${player.name} as age >=1hr`)
                             return;
