@@ -121,7 +121,7 @@ export class SocketServer {
         })
         this.wss.clients.forEach(async client => {
             if (await this.isClientAuthed(client)) {
-                client.send("users?" + JSON.stringify(this.main.users))
+                client.send("users?" + JSON.stringify(this.main.users.values().toArray()))
             }
         })
     }
