@@ -1,3 +1,5 @@
 /dist
 /node_modules
 /pos_list.json
+config.json
+config-test.json
