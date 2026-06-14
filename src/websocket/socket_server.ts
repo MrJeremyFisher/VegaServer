@@ -102,9 +102,8 @@ export class SocketServer {
             const incomingUserUpdate = JSON.parse(query[1]) as VegaUser;
             if (this.main.users.has(incomingUserUpdate.name) && this.main.users.get(incomingUserUpdate.name)?.permission != 2) {
                 this.main.users.set(incomingUserUpdate.name, incomingUserUpdate)
-                this.main.pgHandler.insertOrUpdateUser(incomingUserUpdate as VegaUser);
+                this.main.pgHandler.insertOrUpdateUser(incomingUserUpdate as VegaUser).then(() => this.sendUpdatedUsers())
             }
-            this.sendUpdatedUsers();
         }
 
         else {
