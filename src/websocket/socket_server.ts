@@ -12,7 +12,7 @@ export interface CType {
 export class SocketServer {
     main: Main
     wss: WebSocketServer
-    players: Player[] = []
+    players: Map<string, Player> = new Map();
 
     constructor(main: Main) {
         this.main = main
@@ -51,6 +51,10 @@ export class SocketServer {
                         // What other stuff can we send down as ByteBuffers? 
                         self.parseIncoming(this, data.toString())
                     });
+
+                    ws.on("close", (code: number, reason: Buffer) => {
+                        ws.close();
+                    });
                 } else {
                     ws.send("401");
                     console.log(`Connection attempt failed to authenticate: user ${username} not authorized`);
@@ -74,8 +78,6 @@ export class SocketServer {
     }
 
     public async parseIncoming(wsc: WebSocket, data: string) {
-
-
         let query = data.split("?");
         query = query[1].split("=")
         if (query[0] === "player") {
@@ -83,17 +85,16 @@ export class SocketServer {
                 console.log(`Refused player update from ${(wsc as any).name}, not authed`)
                 return;
             }
-            const incomingPlayerUpdate = JSON.parse(query[1]);
-            const idx = this.players.findIndex(player => {
-                return player.name == incomingPlayerUpdate.name
-            });
+            const incomingPlayerUpdate = JSON.parse(query[1]) as Player;
 
-            if (idx != -1) {
-                if (this.players[idx].time < incomingPlayerUpdate.time) {
-                    this.players[idx] = incomingPlayerUpdate;
+            if (this.players.has(incomingPlayerUpdate.name)) {
+                const existingPlayer = this.players.get(incomingPlayerUpdate.name)!
+
+                if (existingPlayer.time < incomingPlayerUpdate.time) {
+                    this.players.set(existingPlayer.name, incomingPlayerUpdate)
                 }
             } else {
-                this.players.push(incomingPlayerUpdate)
+                this.players.set(incomingPlayerUpdate.name, incomingPlayerUpdate)
             }
         } else if (query[0] === "user") {
             if (!(await this.isClientAdmin(wsc))) {
@@ -132,11 +133,12 @@ export class SocketServer {
     public async sendUpdatedPlayers() {
         this.wss.clients.forEach(async client => {
             if (await this.isClientAuthed(client)) {
+
                 this.players.forEach(player => {
-                    if ((Date.now() - parseInt(player.time)) / (3.6 * 10 ^ 6) >= 1) {
-                        let idx = this.players.indexOf(player)
-                        if (idx > -1) {
-                            this.players.splice(idx);
+                    if ((Date.now() - parseInt(player.time))/(3.6 * (10 ** 6)) >= 1) {
+                        if (this.players.delete(player.name)) {
+                            console.log(`Removed ${player.name} as age >=1hr`)
+                            return;
                         }
                     }
                     client.send("player?" + JSON.stringify(player))

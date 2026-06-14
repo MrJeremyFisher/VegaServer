@@ -31,7 +31,6 @@ export interface Config {
 
 export class Main {
     users: VegaUser[] = []
-    players: Player[] = []
     pgHandler: PgHandler
     config: Config
     // authorizedUsers = ["MrJeremyFisher", "Hg__80", "binchymonkey", "IKEA_FRIDGE"]
