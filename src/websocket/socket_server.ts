@@ -85,6 +85,10 @@ export class SocketServer {
             }
             const incomingPlayerUpdate = JSON.parse(query[1]) as Player;
 
+            if ((Date.now() - parseInt(incomingPlayerUpdate.time)) / (3.6 * (10 ** 6)) >= 1) {
+                return;
+            }
+
             if (this.players.has(incomingPlayerUpdate.name)) {
                 const existingPlayer = this.players.get(incomingPlayerUpdate.name)!
 
@@ -132,7 +136,7 @@ export class SocketServer {
                 this.players.forEach(player => {
                     if ((Date.now() - parseInt(player.time)) / (3.6 * (10 ** 6)) >= 1) {
                         if (this.players.delete(player.name)) {
-                            console.log(`Removed ${player.name} as age >=1hr`)
+                            // console.log(`Removed ${player.name} as age >=1hr`)
                             return;
                         }
                     }
