@@ -107,8 +107,10 @@ export class SocketServer {
                 console.log(`Refused user update from ${(wsc as any).name}, not admin`)
                 return;
             }
-            
-            if (this.main.users.has(incomingUserUpdate.name) && this.main.users.get(incomingUserUpdate.name)?.permission != 2) {
+
+            if (this.main.users.has(incomingUserUpdate.name) && this.main.users.get(incomingUserUpdate.name)?.permission == 2) {
+                console.log(`Refused user update from ${(wsc as any).name}, cannot change fellow admin ${incomingUserUpdate.name}`)
+            } else {
                 this.main.users.set(incomingUserUpdate.name, incomingUserUpdate)
                 this.main.pgHandler.insertOrUpdateUser(incomingUserUpdate as VegaUser).then(() => this.sendUpdatedUsers())
             }
