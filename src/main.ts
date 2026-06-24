@@ -53,7 +53,7 @@ export class Main {
                     uuid VARCHAR(128),
                     status INT,
                     permission INT
-                    );`.then(() => {
+                    ), UNIQUE (uuid);`.then(() => {
             this.pgHandler.sql`SELECT * FROM vega_users;`.then((rows) => {
                 rows.forEach((row) => {
                     let r = row as VegaUser
