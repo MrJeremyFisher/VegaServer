@@ -41,7 +41,7 @@ export class SocketServer {
                 if (main.users.has(username) && main.users.get(username)!.permission >= 1) {
                     ws.send("200");
                     (ws as any).name = username
-                    console.log("Connection attempt authenticated.");
+                    console.log(`Connection attempt from ${username} authenticated.`);
                     ws.on("error", console.error);
                     self.sendUpdatedUsers()
 
@@ -52,6 +52,7 @@ export class SocketServer {
                     });
 
                     ws.on("close", (code: number, reason: Buffer) => {
+                        console.log(`Connection to ${username} closed, http ${code} with reason "${reason}"`)
                         ws.close();
                     });
                 } else {
@@ -99,11 +100,14 @@ export class SocketServer {
                 this.players.set(incomingPlayerUpdate.name, incomingPlayerUpdate)
             }
         } else if (query[0] === "user") {
+            const incomingUserUpdate = JSON.parse(query[1]) as VegaUser;
+
+            console.log(`Received user update from ${(wsc as any).name} for user ${incomingUserUpdate.name}`)
             if (!(await this.isClientAdmin(wsc))) {
                 console.log(`Refused user update from ${(wsc as any).name}, not admin`)
                 return;
             }
-            const incomingUserUpdate = JSON.parse(query[1]) as VegaUser;
+            
             if (this.main.users.has(incomingUserUpdate.name) && this.main.users.get(incomingUserUpdate.name)?.permission != 2) {
                 this.main.users.set(incomingUserUpdate.name, incomingUserUpdate)
                 this.main.pgHandler.insertOrUpdateUser(incomingUserUpdate as VegaUser).then(() => this.sendUpdatedUsers())
