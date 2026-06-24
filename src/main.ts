@@ -50,10 +50,10 @@ export class Main {
         this.pgHandler = new PgHandler(this)
         this.pgHandler.sql`CREATE TABLE IF NOT EXISTS vega_users (
                     name VARCHAR(32), 
-                    uuid VARCHAR(128),
+                    uuid VARCHAR(128) UNIQUE,
                     status INT,
                     permission INT
-                    ), UNIQUE (uuid);`.then(() => {
+                    );`.then(() => {
             this.pgHandler.sql`SELECT * FROM vega_users;`.then((rows) => {
                 rows.forEach((row) => {
                     let r = row as VegaUser
