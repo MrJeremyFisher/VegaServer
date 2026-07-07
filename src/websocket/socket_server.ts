@@ -86,7 +86,8 @@ export class SocketServer {
             }
             const incomingPlayerUpdate = JSON.parse(query[1]) as Player;
 
-            if ((Date.now() - parseInt(incomingPlayerUpdate.time)) / (3.6 * (10 ** 6)) >= 1) {
+            if ((Date.now() - parseInt(incomingPlayerUpdate.time)) / (3.6 * (10 ** 6)) >= 8) {
+                console.log(`Not accepting update to ${incomingPlayerUpdate.name} as age >=8hr`)
                 return;
             }
 
@@ -138,11 +139,10 @@ export class SocketServer {
     public async sendUpdatedPlayers() {
         this.wss.clients.forEach(async client => {
             if (await this.isClientAuthed(client)) {
-
                 this.players.forEach(player => {
-                    if ((Date.now() - parseInt(player.time)) / (3.6 * (10 ** 6)) >= 1) {
+                    if ((Date.now() - parseInt(player.time)) / (3.6 * (10 ** 6)) >= 8) {
                         if (this.players.delete(player.name)) {
-                            // console.log(`Removed ${player.name} as age >=1hr`)
+                            console.log(`Removed ${player.name} as age >=8hr`)
                             return;
                         }
                     }

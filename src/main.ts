@@ -33,7 +33,6 @@ export class Main {
     users: Map<string, VegaUser> = new Map()
     pgHandler: PgHandler
     config: Config
-    // authorizedUsers = ["MrJeremyFisher", "Hg__80", "binchymonkey", "IKEA_FRIDGE"]
 
     constructor() {
         switch (process.env.NODE_ENV) {
