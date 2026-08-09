@@ -14,15 +14,15 @@
 		"lib": [
 			"ESNext"
 		],
-		"module": "Node16",
-		"moduleResolution": "node16",
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
 		"noImplicitAny": true,
 		"outDir": "dist/",
 		"rootDir": "src/",
 		"skipLibCheck": true,
 		"sourceMap": true,
 		"strict": true,
-		"target": "ES2021",
+		"target": "ES2025",
 		"types": [
 			"node"
 		]

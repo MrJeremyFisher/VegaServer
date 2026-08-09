@@ -33,6 +33,7 @@ export class Main {
     users: Map<string, VegaUser> = new Map()
     pgHandler: PgHandler
     config: Config
+    socket: SocketServer;
 
     constructor() {
         switch (process.env.NODE_ENV) {
@@ -60,9 +61,7 @@ export class Main {
                 })
             })
         })
+
+        this.socket = new SocketServer(this);
     }
 }
-
-const main = new Main()
-
-new SocketServer(main);

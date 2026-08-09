@@ -40,7 +40,8 @@ export class SocketServer {
             if (dataResponse.status === 200) {
                 if (main.users.has(username) && main.users.get(username)!.permission >= 1) {
                     ws.send("200");
-                    (ws as any).name = username
+                    (ws as any).name = username;
+                    (ws as any).isAlive = true;
                     console.log(`Connection attempt from ${username} authenticated.`);
                     ws.on("error", console.error);
                     self.sendUpdatedUsers()
@@ -52,9 +53,11 @@ export class SocketServer {
                     });
 
                     ws.on("close", (code: number, reason: Buffer) => {
-                        console.log(`Connection to ${username} closed, http ${code} with reason "${reason}"`)
+                        console.log(`Connection to ${username} closed, http ${code}` + (reason ? ` with reason "${reason}"` : ""))
                         ws.close();
                     });
+
+                    ws.on("pong", () => (ws as any).isAlive = true);
                 } else {
                     ws.send("401");
                     console.log(`Connection attempt failed to authenticate: user ${username} not authorized`);
@@ -74,6 +77,19 @@ export class SocketServer {
                 this.sendUpdatedPlayers()
             }
         }, 2000);
+
+        setInterval(() => {
+            this.wss.clients.forEach((ws) => {
+                const wsc = (ws as any)
+                if (wsc.isAlive == false) {
+                    // TODO when a client update is pushed for this
+                    // return ws.terminate();
+                    console.log(`dead client with name ${wsc.name}`)
+                }
+                wsc.isAlive = false;
+                ws.ping();
+            });
+        }, 10_000);
     }
 
     public async parseIncoming(wsc: WebSocket, data: string) {
@@ -131,7 +147,7 @@ export class SocketServer {
         })
         this.wss.clients.forEach(async client => {
             if (await this.isClientAuthed(client)) {
-                client.send("users?" + JSON.stringify(this.main.users.values().toArray()))
+                client.send("users?" + JSON.stringify(Array.from(this.main.users.values())));
             }
         })
     }
