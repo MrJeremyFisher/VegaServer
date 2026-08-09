@@ -65,3 +65,5 @@ export class Main {
         this.socket = new SocketServer(this);
     }
 }
+
+const main = new Main()
