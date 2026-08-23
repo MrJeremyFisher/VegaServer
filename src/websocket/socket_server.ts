@@ -82,8 +82,6 @@ export class SocketServer {
             this.wss.clients.forEach((ws) => {
                 const wsc = (ws as any);
                 if (wsc.isAlive == false) {
-                    // TODO when a client update is pushed for this
-                    // return 
                     console.log(`dead client with name ${wsc.name}`);
                     ws.terminate();
                 }

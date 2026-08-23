@@ -5,7 +5,8 @@ export interface Position {
     x: string,
     y: string,
     z: string,
-    world: string
+    world: string,
+    server: string
 }
 
 export interface Player {
