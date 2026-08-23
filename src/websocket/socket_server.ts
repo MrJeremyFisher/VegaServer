@@ -53,7 +53,7 @@ export class SocketServer {
                     });
 
                     ws.on("close", (code: number, reason: Buffer) => {
-                        console.log(`Connection to ${username} closed, http ${code}` + (reason ? ` with reason "${reason}"` : ""))
+                        console.log(`Connection to ${username} closed, code ${code}` + (reason ? ` with reason "${reason}"` : ""))
                         ws.close();
                     });
 
@@ -80,11 +80,12 @@ export class SocketServer {
 
         setInterval(() => {
             this.wss.clients.forEach((ws) => {
-                const wsc = (ws as any)
+                const wsc = (ws as any);
                 if (wsc.isAlive == false) {
                     // TODO when a client update is pushed for this
-                    // return ws.terminate();
-                    console.log(`dead client with name ${wsc.name}`)
+                    // return 
+                    console.log(`dead client with name ${wsc.name}`);
+                    ws.terminate();
                 }
                 wsc.isAlive = false;
                 ws.ping();
