@@ -1,6 +1,7 @@
 import { IncomingMessage } from "http";
 import { Socket } from "net";
 import { URL } from "url";
+import jwt from "jsonwebtoken";
 import WebSocket, { WebSocketServer } from "ws";
 import { Main, Player, VegaUser } from "../main";
 
@@ -13,6 +14,7 @@ export class SocketServer {
     main: Main
     wss: WebSocketServer
     players: Map<string, Player> = new Map();
+    tokens: Map<string, string> = new Map();
 
     constructor(main: Main) {
         this.main = main
@@ -29,20 +31,38 @@ export class SocketServer {
             }
 
             const url = new URL(`http://${process.env.HOST ?? 'localhost'}${request.url}`)
+            const incomingToken = url.searchParams.get("token")!;
             const serverID = url.searchParams.get("serverId")!;
             const username = url.searchParams.get("username")!;
 
             console.log(`Incoming connection attempt from: ${username} with hash ${serverID}`);
-
-
-            const dataResponse = await fetch(`https://sessionserver.mojang.com/session/minecraft/hasJoined?username=${username}&serverId=${serverID}`);
-
-            if (dataResponse.status === 200) {
+            let dataResponse = -1
+            console.log(self.tokens)
+            try {
+                if (incomingToken && self.tokens.has(username)) {
+                    jwt.verify(incomingToken, main.config.secret);
+                    dataResponse = 200;
+                    console.log(`Connection attempt from ${username} authenticated with JWT.`);
+                } else {
+                    dataResponse = await self.tryMojangAuth(ws, username, serverID);
+                }
+            } catch {
+                console.log(`Old/invalid token for ${username}, proceeding to Mojang auth`);
+                dataResponse = await self.tryMojangAuth(ws, username, serverID);
+            }
+            if (dataResponse === 200) {
                 if (main.users.has(username) && main.users.get(username)!.permission >= 1) {
                     ws.send("200");
                     (ws as any).name = username;
                     (ws as any).isAlive = true;
-                    console.log(`Connection attempt from ${username} authenticated.`);
+
+                    const token = jwt.sign({ id: main.users.get(username)?.uuid }, main.config.secret, {
+                        expiresIn: '1 day',
+                    });
+
+                    ws.send(`token?${token}`)
+                    self.tokens.set(username, token)
+
                     ws.on("error", console.error);
                     self.sendUpdatedUsers()
 
@@ -66,9 +86,7 @@ export class SocketServer {
                 }
             } else {
                 ws.send("401");
-                console.log(`Connection attempt failed to authenticate: bad response (${dataResponse.status}) from Mojang`);
                 ws.close();
-                return;
             }
         });
 
@@ -82,7 +100,7 @@ export class SocketServer {
             this.wss.clients.forEach((ws) => {
                 const wsc = (ws as any);
                 if (wsc.isAlive == false) {
-                    console.log(`dead client with name ${wsc.name}`);
+                    console.log(`Removing dead client with name ${wsc.name}`);
                     ws.terminate();
                 }
                 wsc.isAlive = false;
@@ -109,7 +127,10 @@ export class SocketServer {
             if (this.players.has(incomingPlayerUpdate.name)) {
                 const existingPlayer = this.players.get(incomingPlayerUpdate.name)!
 
-                if (existingPlayer.time < incomingPlayerUpdate.time) {
+                if (existingPlayer.time < incomingPlayerUpdate.time
+                    || existingPlayer.position.server != incomingPlayerUpdate.position.server
+                    || existingPlayer.position.world != incomingPlayerUpdate.position.world
+                ) {
                     this.players.set(existingPlayer.name, incomingPlayerUpdate)
                 }
             } else {
@@ -187,5 +208,18 @@ export class SocketServer {
         }
 
         return true;
+    }
+
+    private async tryMojangAuth(ws: WebSocket, username: string, serverID: string) {
+        let dataResponse = (await fetch(`https://sessionserver.mojang.com/session/minecraft/hasJoined?username=${username}&serverId=${serverID}`)).status;
+        if (dataResponse != 200) {
+            ws.send("401");
+            console.log(`Connection attempt failed to authenticate: bad response (${dataResponse}) from Mojang`);
+            ws.close();
+        } else {
+            console.log(`Connection attempt from ${username} authenticated with Mojang.`);
+        }
+
+        return dataResponse;
     }
 }

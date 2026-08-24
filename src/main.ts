@@ -26,7 +26,8 @@ export interface VegaUser {
 }
 
 export interface Config {
-    dbURL: string
+    dbURL: string,
+    secret: string
 }
 
 
