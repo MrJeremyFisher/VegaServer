@@ -37,7 +37,6 @@ export class SocketServer {
 
             console.log(`Incoming connection attempt from: ${username} with hash ${serverID}`);
             let dataResponse = -1
-            console.log(self.tokens)
             try {
                 if (incomingToken && self.tokens.has(username)) {
                     jwt.verify(incomingToken, main.config.secret);
