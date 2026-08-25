@@ -40,8 +40,11 @@ export class SocketServer {
             try {
                 if (incomingToken && self.tokens.has(username)) {
                     jwt.verify(incomingToken, main.config.secret);
-                    dataResponse = 200;
-                    console.log(`Connection attempt from ${username} authenticated with JWT.`);
+                    let decoded = jwt.decode(main.config.secret);
+                    if (decoded && JSON.parse(decoded as string).username == username) {
+                        dataResponse = 200;
+                        console.log(`Connection attempt from ${username} authenticated with JWT.`);
+                    }
                 } else {
                     dataResponse = await self.tryMojangAuth(ws, username, serverID);
                 }
@@ -55,8 +58,8 @@ export class SocketServer {
                     (ws as any).name = username;
                     (ws as any).isAlive = true;
 
-                    const token = jwt.sign({ id: main.users.get(username)?.uuid }, main.config.secret, {
-                        expiresIn: '1 day',
+                    const token = jwt.sign({ id: main.users.get(username)?.uuid, username: username }, main.config.secret, {
+                        expiresIn: '24h',
                     });
 
                     ws.send(`token?${token}`)
