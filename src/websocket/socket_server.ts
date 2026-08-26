@@ -14,7 +14,6 @@ export class SocketServer {
     main: Main
     wss: WebSocketServer
     players: Map<string, Player> = new Map();
-    tokens: Map<string, string> = new Map();
 
     constructor(main: Main) {
         this.main = main
@@ -38,8 +37,8 @@ export class SocketServer {
             console.log(`Incoming connection attempt from: ${username} with hash ${serverID}`);
             let dataResponse = -1
             try {
-                if (incomingToken && self.tokens.has(username)) {
-                    console.log(`Have token for ${username}, verifying`);
+                if (incomingToken) {
+                    console.log(`${username} sent JWT, verifying`);
                     let v = jwt.verify(incomingToken, main.config.secret);
                     let decoded = jwt.decode(incomingToken, { json: true });
                     if (decoded && decoded.username == username) {
@@ -63,21 +62,19 @@ export class SocketServer {
                     const token = jwt.sign({ id: main.users.get(username)?.uuid, username: username }, main.config.secret, {
                         expiresIn: '24h',
                     });
-
-                    ws.send(`token?${token}`)
-                    self.tokens.set(username, token)
+                    ws.send(`token?${token}`);
 
                     ws.on("error", console.error);
-                    self.sendUpdatedUsers()
+                    self.sendUpdatedUsers();
 
                     ws.on("message", function message(data: WebSocket.RawData, isBinary: boolean) {
                         // toString here converts the incoming ByteBuffer to a string, assuming that's what it's supposed to be.
                         // What other stuff can we send down as ByteBuffers? 
-                        self.parseIncoming(this, data.toString())
+                        self.parseIncoming(this, data.toString());
                     });
 
                     ws.on("close", (code: number, reason: Buffer) => {
-                        console.log(`Connection to ${username} closed, code ${code}` + (reason ? ` with reason "${reason}"` : ""))
+                        console.log(`Connection to ${username} closed, code ${code}` + (reason ? ` with reason "${reason}"` : ""));
                         ws.close();
                     });
 
