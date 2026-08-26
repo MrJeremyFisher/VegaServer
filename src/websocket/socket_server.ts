@@ -40,7 +40,8 @@ export class SocketServer {
             try {
                 if (incomingToken && self.tokens.has(username)) {
                     console.log(`Have token for ${username}, verifying`);
-                    jwt.verify(incomingToken, main.config.secret);
+                    let v = jwt.verify(incomingToken, main.config.secret);
+                    console.log(v)
                     let decoded = jwt.decode(main.config.secret);
                     if (decoded && JSON.parse(decoded as string).username == username) {
                         dataResponse = 200;
