@@ -41,9 +41,8 @@ export class SocketServer {
                 if (incomingToken && self.tokens.has(username)) {
                     console.log(`Have token for ${username}, verifying`);
                     let v = jwt.verify(incomingToken, main.config.secret);
-                    console.log(v)
-                    let decoded = jwt.decode(main.config.secret);
-                    if (decoded && JSON.parse(decoded as string).username == username) {
+                    let decoded = jwt.decode(incomingToken, { json: true });
+                    if (decoded && decoded.username == username) {
                         dataResponse = 200;
                         console.log(`Connection attempt from ${username} authenticated with JWT`);
                     }
