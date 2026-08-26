@@ -39,13 +39,15 @@ export class SocketServer {
             let dataResponse = -1
             try {
                 if (incomingToken && self.tokens.has(username)) {
+                    console.log(`Have token for ${username}, verifying`);
                     jwt.verify(incomingToken, main.config.secret);
                     let decoded = jwt.decode(main.config.secret);
                     if (decoded && JSON.parse(decoded as string).username == username) {
                         dataResponse = 200;
-                        console.log(`Connection attempt from ${username} authenticated with JWT.`);
+                        console.log(`Connection attempt from ${username} authenticated with JWT`);
                     }
                 } else {
+                    console.log(`No token for ${username}, trying Mojang auth`);
                     dataResponse = await self.tryMojangAuth(ws, username, serverID);
                 }
             } catch {
