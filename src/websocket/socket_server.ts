@@ -36,13 +36,14 @@ export class SocketServer {
 
             console.log(`Incoming connection attempt from: ${username} with hash ${serverID}`);
             let dataResponse = -1
+            let auth = false;
             try {
                 if (incomingToken) {
                     console.log(`${username} sent JWT, verifying`);
                     let v = jwt.verify(incomingToken, main.config.secret);
                     let decoded = jwt.decode(incomingToken, { json: true });
-                    if (decoded && decoded.username == username) {
-                        dataResponse = 200;
+                    if (decoded && decoded.username === username) {
+                        auth = true;
                         console.log(`Connection attempt from ${username} authenticated with JWT`);
                     }
                 } else {
@@ -53,16 +54,18 @@ export class SocketServer {
                 console.log(`Old/invalid token for ${username}, proceeding to Mojang auth`);
                 dataResponse = await self.tryMojangAuth(ws, username, serverID);
             }
-            if (dataResponse === 200) {
+            if (dataResponse === 200 || auth) {
                 if (main.users.has(username) && main.users.get(username)!.permission >= 1) {
                     ws.send("200");
                     (ws as any).name = username;
                     (ws as any).isAlive = true;
 
-                    const token = jwt.sign({ id: main.users.get(username)?.uuid, username: username }, main.config.secret, {
-                        expiresIn: '24h',
-                    });
-                    ws.send(`token?${token}`);
+                    if (dataResponse === 200) {
+                        const token = jwt.sign({ id: main.users.get(username)?.uuid, username: username }, main.config.secret, {
+                            expiresIn: '24h',
+                        });
+                        ws.send(`token?${token}`);
+                    }
 
                     ws.on("error", console.error);
                     self.sendUpdatedUsers();
