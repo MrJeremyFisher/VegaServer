@@ -1,4 +1,5 @@
 import { PgHandler } from "./pghandler";
+import { TerminalUI } from "./terminal";
 import { SocketServer } from "./websocket/socket_server";
 
 export interface Position {
@@ -13,7 +14,14 @@ export interface Player {
     time: string,
     name: string,
     uuid: string,
+    source: Source,
     position: Position
+}
+
+export enum Source {
+    LOCAL, // Waypoint comes from an entity in view distance. Should not be shared unless the waypoint is for the local player
+    SNITCH, // Waypoint comes from a snitch hit
+    REMOTE, // Waypoint comes from remote server
 }
 
 export interface VegaUser {
@@ -27,15 +35,29 @@ export interface VegaUser {
 
 export interface Config {
     dbURL: string,
-    secret: string
+    secret: string,
+    useSnitchBot: boolean, // Whether or not the application should interface with the (closed source for now) snitchbot
+    UAEmail: string // email for user-agent in requests
 }
+
+export interface PosEntry {
+    name: string,
+    severity: severity,
+    reason: string,
+    date: string,
+    messageID: string,
+    adder: string | null
+}
+
+export type severity = 'ping' | 'watch'
 
 
 export class Main {
-    users: Map<string, VegaUser> = new Map()
-    pgHandler: PgHandler
-    config: Config
-    socket: SocketServer;
+    users: Map<string, VegaUser> = new Map();
+    pgHandler: PgHandler;
+    config: Config;
+    socket!: SocketServer;
+    terminalUI!: TerminalUI;
 
     constructor() {
         switch (process.env.NODE_ENV) {
@@ -47,9 +69,9 @@ export class Main {
                 break;
             default:
                 throw new Error("No config type specified!")
-        }
+        };
 
-        this.pgHandler = new PgHandler(this)
+        this.pgHandler = new PgHandler(this);
         this.pgHandler.sql`CREATE TABLE IF NOT EXISTS vega_users (
                     name VARCHAR(32), 
                     uuid VARCHAR(128) UNIQUE,
@@ -58,13 +80,14 @@ export class Main {
                     );`.then(() => {
             this.pgHandler.sql`SELECT * FROM vega_users;`.then((rows) => {
                 rows.forEach((row) => {
-                    let r = row as VegaUser
-                    this.users.set(r.name, r)
+                    let r = row as VegaUser;
+                    this.users.set(r.name, r);
                 })
-            })
-        })
-
-        this.socket = new SocketServer(this);
+            });
+        }).finally(() => {
+            this.socket = new SocketServer(this);
+            this.terminalUI = new TerminalUI(this);
+        });
     }
 }
 

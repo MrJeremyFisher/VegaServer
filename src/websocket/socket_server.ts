@@ -3,28 +3,32 @@ import { Socket } from "net";
 import { URL } from "url";
 import jwt from "jsonwebtoken";
 import WebSocket, { WebSocketServer } from "ws";
-import { Main, Player, VegaUser } from "../main";
+import { Main, Player, PosEntry, VegaUser } from "../main";
 
 export interface CType {
     client: Socket,
+}
 
+export interface WSClient extends WebSocket {
+    name: string,
+    isAlive: boolean,
 }
 
 export class SocketServer {
     main: Main
     wss: WebSocketServer
     players: Map<string, Player> = new Map();
+    nameMapCache: Map<string, string> = new Map();
 
     constructor(main: Main) {
         this.main = main
         var self = this
-
+        // TODO: collect info from non-auth users
         this.wss = new WebSocketServer({ port: 8080 });
-        console.log("Server started on port 8080");
         this.wss.on("connection", async function connection(ws: WebSocket, request: IncomingMessage) {
             if (!request.url || !/\/\?serverId=.\w*&username=([A-Za-z0-9_]{2,17})/.test(request.url)) {
                 ws.send("401");
-                console.log("Connection attempt failed to authenticate: malformed url");
+                console.log(`Connection attempt failed to authenticate: malformed url \"${request.url}\"`);
                 ws.close();
                 return;
             }
@@ -96,7 +100,7 @@ export class SocketServer {
 
         setInterval(() => {
             if (this.wss.clients.size > 0) {
-                this.sendUpdatedPlayers()
+                this.sendUpdatedPlayers();
             }
         }, 2000);
 
@@ -155,14 +159,39 @@ export class SocketServer {
                 this.main.users.set(incomingUserUpdate.name, incomingUserUpdate)
                 this.main.pgHandler.insertOrUpdateUser(incomingUserUpdate as VegaUser).then(() => this.sendUpdatedUsers())
             }
-        }
-
-        else {
+        } else {
             console.log(`Received unknown data ${data} from ${wsc}`);
         }
     }
 
     public async sendUpdatedUsers() {
+        // if (this.main.config.useSnitchBot) {
+        //     this.main.pgHandler.sql`SELECT * FROM pos;`.then((rows) => {
+        //         rows.forEach((row) => {
+        //             let r = row as PosEntry
+        //             if (!this.nameMapCache.has(r.name)) {
+        //                 const dataResponse = await fetch(`https://playerdb.co/api/player/minecraft/${r.name}`,
+        //                     {
+        //                         method: "GET",
+        //                         headers: {
+        //                             "User-Agent": `Email ${this.main.config.UAEmail}`
+        //                         }
+        //                     });
+        //                 const data = (await dataResponse.json()) as any;
+        //                 this.nameMapCache.set(r.name, data.player.id)
+        //             }
+
+
+
+        //             this.main.users.set(r.name, {
+        //                 name: r.name,
+        //                 uuid: this.nameMapCache.get(r.name)!,
+        //                 status: ,
+        //                 permission: 
+        //             })
+        //         })
+        //     })
+        // }
         this.main.pgHandler.sql`SELECT * FROM vega_users;`.then((rows) => {
             rows.forEach((row) => {
                 let r = row as VegaUser
