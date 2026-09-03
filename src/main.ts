@@ -86,7 +86,7 @@ export class Main {
             });
         }).finally(() => {
             this.socket = new SocketServer(this);
-            this.terminalUI = new TerminalUI(this);
+            // this.terminalUI = new TerminalUI(this);
         });
     }
 }
