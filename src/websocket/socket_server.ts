@@ -51,7 +51,7 @@ export class SocketServer {
                         console.log(`Connection attempt from ${username} authenticated with JWT`);
                         if ((decoded?.exp! - Date.now()) < 1 * 60 * 60 * 1000) {
                             console.log(`JWT near expiry (in ${Math.floor(decoded?.exp! - (Date.now() / 1000))} seconds), trying Mojang auth to reissue`)
-                            dataResponse = await self.tryMojangAuth(ws, username, serverID);
+                            dataResponse = (await fetch(`https://sessionserver.mojang.com/session/minecraft/hasJoined?username=${username}&serverId=${serverID}`)).status;;
                         }
                     }
                 } else {
