@@ -22,6 +22,7 @@ export enum Source {
     LOCAL, // Waypoint comes from an entity in view distance. Should not be shared unless the waypoint is for the local player
     SNITCH, // Waypoint comes from a snitch hit
     REMOTE, // Waypoint comes from remote server
+    USER // Waypoint comes from someone using the mod
 }
 
 export interface VegaUser {
