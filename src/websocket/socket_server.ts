@@ -37,6 +37,13 @@ export class SocketServer {
             const incomingToken = url.searchParams.get("token")!;
             const serverID = url.searchParams.get("serverId")!;
             const username = url.searchParams.get("username")!;
+            const haveUsername = main.users.has(username) && main.users.get(username)!.permission >= 1;
+            if (!haveUsername) {
+                ws.send("401");
+                console.log(`Connection attempt failed to authenticate: user ${username} not authorized`);
+                ws.close();
+                return;
+            }
 
             console.log(`Incoming connection attempt from: ${username} with hash ${serverID}`);
             let dataResponse = -1
@@ -64,42 +71,37 @@ export class SocketServer {
                 dataResponse = await self.tryMojangAuth(ws, username, serverID);
             }
             if (dataResponse === 200 || auth) {
-                if (main.users.has(username) && main.users.get(username)!.permission >= 1) {
-                    ws.send("200");
-                    (ws as any).name = username;
-                    (ws as any).isAlive = true;
+                ws.send("200");
+                (ws as any).name = username;
+                (ws as any).isAlive = true;
 
-                    if (dataResponse === 200) {
-                        const token = jwt.sign({ id: main.users.get(username)?.uuid, username: username }, main.config.secret, {
-                            expiresIn: '24h',
-                        });
-                        ws.send(`token?${token}`);
-                    }
-
-                    ws.on("error", console.error);
-                    self.sendUpdatedUsers();
-
-                    ws.on("message", function message(data: WebSocket.RawData, isBinary: boolean) {
-                        // toString here converts the incoming ByteBuffer to a string, assuming that's what it's supposed to be.
-                        // What other stuff can we send down as ByteBuffers? 
-                        self.parseIncoming(this, data.toString());
+                if (dataResponse === 200) {
+                    const token = jwt.sign({ id: main.users.get(username)?.uuid, username: username }, main.config.secret, {
+                        expiresIn: '24h',
                     });
-
-                    ws.on("close", (code: number, reason: Buffer) => {
-                        console.log(`Connection to ${username} closed, code ${code}` + (reason ? ` with reason "${reason}"` : ""));
-                        ws.close();
-                    });
-
-                    ws.on("pong", () => (ws as any).isAlive = true);
-                } else {
-                    ws.send("401");
-                    console.log(`Connection attempt failed to authenticate: user ${username} not authorized`);
-                    ws.close();
-                    return;
+                    ws.send(`token?${token}`);
                 }
+
+                ws.on("error", console.error);
+                self.sendUpdatedUsers();
+
+                ws.on("message", function message(data: WebSocket.RawData, isBinary: boolean) {
+                    // toString here converts the incoming ByteBuffer to a string, assuming that's what it's supposed to be.
+                    // What other stuff can we send down as ByteBuffers? 
+                    self.parseIncoming(this, data.toString());
+                });
+
+                ws.on("close", (code: number, reason: Buffer) => {
+                    console.log(`Connection to ${username} closed, code ${code}` + (reason ? ` with reason "${reason}"` : ""));
+                    ws.close();
+                });
+
+                ws.on("pong", () => (ws as any).isAlive = true);
             } else {
                 ws.send("401");
+                console.log(`Connection attempt failed to authenticate: user ${username} not authorized`);
                 ws.close();
+                return;
             }
         });
 
@@ -133,7 +135,7 @@ export class SocketServer {
             const incomingPlayerUpdate = JSON.parse(query[1]) as Player;
 
             if ((Date.now() - parseInt(incomingPlayerUpdate.time)) / (3.6 * (10 ** 6)) >= 8) {
-                console.log(`Not accepting update to ${incomingPlayerUpdate.name} as age >=8hr`)
+                // console.log(`Not accepting update to ${incomingPlayerUpdate.name} as age >=8hr`);
                 return;
             }
 
