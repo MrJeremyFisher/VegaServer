@@ -59,6 +59,7 @@ export class Main {
     config: Config;
     socket!: SocketServer;
     terminalUI!: TerminalUI;
+    uuidCache: Map<string, string> // name-to-uuid
 
     constructor() {
         switch (process.env.NODE_ENV) {
@@ -72,6 +73,7 @@ export class Main {
                 throw new Error("No config type specified!")
         };
 
+        this.uuidCache = new Map();
         this.pgHandler = new PgHandler(this);
         this.pgHandler.sql`CREATE TABLE IF NOT EXISTS vega_users (
                     name VARCHAR(32), 
@@ -89,6 +91,33 @@ export class Main {
             this.socket = new SocketServer(this);
             // this.terminalUI = new TerminalUI(this);
         });
+    }
+
+    public async name2uuid(name: string): Promise<string> {
+        if (this.uuidCache.has(name.toLowerCase())) {
+            return this.uuidCache.get(name.toLowerCase())!;
+        }
+        return fetch(`https://playerdb.co/api/player/minecraft/${name}`)
+            .then(data => { return data.json() })
+            .then((data) => {
+                if ((data as any).code != 'player.found') return null;
+                const id = (data as any).data.player.id;
+                this.uuidCache.set((data as any).data.player.username.toLowerCase(), id);
+                return id;
+            });
+    }
+
+    public async uuid2name(uuid: string): Promise<string> {
+        const foundUser = this.uuidCache.get(uuid);
+        if (foundUser) {
+            return foundUser;
+        }
+        return fetch(`https://playerdb.co/api/player/minecraft/${uuid}`)
+            .then(data => { return data.json() })
+            .then((data) => {
+                this.uuidCache.set((data as any).data.player.username.toLowerCase(), (data as any).data.player.id);
+                return (data as any).data.player.username;
+            });
     }
 }
 

@@ -36,7 +36,16 @@ export class SocketServer {
             const url = new URL(`http://${process.env.HOST ?? 'localhost'}${request.url}`)
             const incomingToken = url.searchParams.get("token")!;
             const serverID = url.searchParams.get("serverId")!;
-            const username = url.searchParams.get("username")!;
+            let username = url.searchParams.get("username")!;
+            let realName;
+            const uuid = url.searchParams.get("uuid")!;
+            if (uuid) {
+                realName = await main.uuid2name(uuid); // in case of name changes, this will not be the same as username
+                if (realName != username) {
+                    console.log(`Name change for ${username}, to ${realName}`);
+                }
+            }
+
             const haveUsername = main.users.has(username) && main.users.get(username)!.permission >= 1;
             if (!haveUsername) {
                 ws.send("401");
@@ -58,17 +67,19 @@ export class SocketServer {
                         console.log(`Connection attempt from ${username} authenticated with JWT`);
                         if ((decoded?.exp! - (Date.now() / 1000)) < 1 * 60 * 60) {
                             console.log(`JWT near expiry (in ${Math.floor(decoded?.exp! - (Date.now() / 1000))} seconds), trying Mojang auth to reissue`)
-                            dataResponse = (await fetch(`https://sessionserver.mojang.com/session/minecraft/hasJoined?username=${username}&serverId=${serverID}`)).status;;
+                            dataResponse = (await fetch(
+                                `https://sessionserver.mojang.com/session/minecraft/hasJoined?username=${uuid ? realName : username}&serverId=${serverID}`
+                            )).status;
                         }
                     }
                 } else {
                     console.log(`No token for ${username}, trying Mojang auth`);
-                    dataResponse = await self.tryMojangAuth(ws, username, serverID);
+                    dataResponse = await self.tryMojangAuth(ws, uuid ? realName! : username, serverID);
                 }
             } catch (e) {
                 console.log(e);
                 console.log(`Old/invalid token for ${username}, proceeding to Mojang auth`);
-                dataResponse = await self.tryMojangAuth(ws, username, serverID);
+                dataResponse = await self.tryMojangAuth(ws, uuid ? realName! : username, serverID);
             }
             if (dataResponse === 200 || auth) {
                 ws.send("200");
@@ -172,33 +183,6 @@ export class SocketServer {
     }
 
     public async sendUpdatedUsers() {
-        // if (this.main.config.useSnitchBot) {
-        //     this.main.pgHandler.sql`SELECT * FROM pos;`.then((rows) => {
-        //         rows.forEach((row) => {
-        //             let r = row as PosEntry
-        //             if (!this.nameMapCache.has(r.name)) {
-        //                 const dataResponse = await fetch(`https://playerdb.co/api/player/minecraft/${r.name}`,
-        //                     {
-        //                         method: "GET",
-        //                         headers: {
-        //                             "User-Agent": `Email ${this.main.config.UAEmail}`
-        //                         }
-        //                     });
-        //                 const data = (await dataResponse.json()) as any;
-        //                 this.nameMapCache.set(r.name, data.player.id)
-        //             }
-
-
-
-        //             this.main.users.set(r.name, {
-        //                 name: r.name,
-        //                 uuid: this.nameMapCache.get(r.name)!,
-        //                 status: ,
-        //                 permission: 
-        //             })
-        //         })
-        //     })
-        // }
         this.main.pgHandler.sql`SELECT * FROM vega_users;`.then((rows) => {
             rows.forEach((row) => {
                 let r = row as VegaUser
